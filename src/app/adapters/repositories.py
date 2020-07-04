@@ -20,4 +20,9 @@ class FakeBookingRepository(AbstractRepository):
     def list(self)->[]:
         return self._booking
 
+    def get_room(self, name:str)->Booking:
+        for room in self._booking:
+            if room.room_name == name:
+                return room
+
 
