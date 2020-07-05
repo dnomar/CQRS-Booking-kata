@@ -3,7 +3,8 @@ sys.path.append(r"C:\Users\van-gerald.olivares\Documents\08 Code\CQRS-kata")
 from datetime import date, timedelta
 from src.app.adapters.repositories import FakeBookingRepository
 from src.app.model.booking import Booking
-from src.app.service_layer.service import is_between, date_range_after,date_range_before, is_room_available
+from src.app.service_layer.service import is_between, date_range_after,date_range_before, is_room_available, get_reservoir_days, get_all_available_rooms
+import pytest
 
 today=date.today()
 today_plus_2=today+timedelta(days=2)
@@ -201,35 +202,67 @@ def test_get_the_ranges_before_the_departure_date():
 
     assert date_range_before(proposed_arrival_1, rooms_booking_list) == test_rooms_booking_list
 
-def test_get_if_space_is_available():
-   
-    desired_booking=(Booking(
-        client_id="cliente-01",
-        room_name="room-1",
-        arrival_date=date(2020,7,22),
-        departure_date=date(2020,7,24)
-    ))
-
-    booked_rooms=FakeBookingRepository()
-    """ booked_rooms.add(Booking(
-        client_id="",
-        room_name=f"room-1",
-        arrival_date=date(2020, 6, 25),
-        departure_date=date(2020, 6, 30)
-    ))
-    booked_rooms.add(Booking(
-        client_id="",
-        room_name=f"room-1",
-        arrival_date=date(2020, 7, 4),
-        departure_date=date(2020, 7, 12)
-    ))
-    booked_rooms.add(Booking(
-        client_id="",
-        room_name=f"room-1",
-        arrival_date=date(2020, 7, 15),
-        departure_date=date(2020, 7, 17)
-    )) """  
+def test_get_list_of_reservoir_days():
     
-    assert is_room_available(desired_booking, booked_rooms.list())
+    d1=date.today()
+    d2=d1 + timedelta(days=5)
+    d_list=get_reservoir_days(d1,d2)
+    sol_dataset=[
+        date(2020,7,4),
+        date(2020,7,5),
+        date(2020,7,6),
+        date(2020,7,7),
+        date(2020,7,8),
+        date(2020,7,9),
+    ]
+    assert d_list == sol_dataset
+    
+    with pytest.raises(Exception):
+        d_list=get_reservoir_days(d2,d1)
 
+def test_get_if_room_is_available():
+      
+    booked_rooms=FakeBookingRepository()
+    assert is_room_available("room-1", date(2020,6,22), date(2020,6,24), booked_rooms)
 
+    booked_rooms.add(Booking(client_id="", room_name="room-1", arrival_date=date(2020, 6, 25), departure_date=date(2020, 6, 30)))
+    booked_rooms.add(Booking(client_id="", room_name=f"room-1", arrival_date=date(2020, 7, 4), departure_date=date(2020, 7, 12)))
+    booked_rooms.add(Booking( client_id="", room_name=f"room-1", arrival_date=date(2020, 7, 15), departure_date=date(2020, 7, 17))) 
+    
+    desired_booking=(Booking( client_id="cliente-01", room_name="room-1", arrival_date=date(2020,6,22), departure_date=date(2020,6,27)))
+    
+    assert is_room_available("room-1", date(2020,6,22), date(2020,6,27), booked_rooms) == False
+
+    assert is_room_available("room-1", date(2020,6,24), date(2020,6,29), booked_rooms) == False
+
+    assert is_room_available("room-1", date(2020, 6, 28), date(2020, 7, 2), booked_rooms) == False
+
+    assert is_room_available("room-1", date(2020, 7, 1), date(2020, 7, 3), booked_rooms)
+    
+    assert is_room_available("room-1", date(2020, 7, 3), date(2020, 7, 14), booked_rooms) == False
+
+def test_get_all_free_rooms(): 
+    
+    arrival_date=date(2020, 6, 26)
+    departure_date=date(2020, 6, 28)
+    booked_rooms=FakeBookingRepository()
+
+    #Given initial Hotel Dataset
+    booked_rooms.add(Booking(client_id="client-1", room_name="room-1", arrival_date=date(2020, 6, 25), departure_date=date(2020, 6, 30))) 
+    booked_rooms.add(Booking(client_id="client-2", room_name="room-2", arrival_date=date(2020, 6, 25), departure_date=date(2020, 6, 30))) 
+    booked_rooms.add(Booking(client_id="client-3", room_name="room-3", arrival_date=date(2020, 6, 25), departure_date=date(2020, 6, 30))) 
+    booked_rooms.add(Booking(client_id="client-4", room_name="room-4", arrival_date=date(2020, 6, 25), departure_date=date(2020, 6, 30))) 
+    booked_rooms.add(Booking(client_id="client-5", room_name="room-5", arrival_date=date(2020, 6, 5), departure_date=date(2020, 6, 13))) 
+    booked_rooms.add(Booking(client_id="client-6", room_name="room-6", arrival_date=date(2020, 6, 25), departure_date=date(2020, 6, 30))) 
+    booked_rooms.add(Booking(client_id="client-7", room_name="room-7", arrival_date=date(2020, 6, 5), departure_date=date(2020, 6, 13))) 
+    booked_rooms.add(Booking(client_id="client-8", room_name="room-8", arrival_date=date(2020, 6, 25), departure_date=date(2020, 6, 30))) 
+    booked_rooms.add(Booking(client_id="client-9", room_name="room-9", arrival_date=date(2020, 6, 25), departure_date=date(2020, 6, 30))) 
+    booked_rooms.add(Booking(client_id="client-10", room_name="room-10", arrival_date=date(2020, 6, 25), departure_date=date(2020, 6, 30)))
+
+    available_rooms_list=get_all_available_rooms(arrival_date, departure_date, booked_rooms)
+
+    solution_dataset=[
+        "room-5",
+        "room-7"
+    ]
+    assert available_rooms_list==solution_dataset
