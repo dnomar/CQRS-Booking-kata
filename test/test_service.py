@@ -1,7 +1,7 @@
 import sys
 sys.path.append(r"C:\Users\van-gerald.olivares\Documents\08 Code\CQRS-kata")
 from datetime import date, timedelta
-from src.app.adapters.repositories import FakeBookingRepository
+from src.app.adapters.repositories import FakeBookingRepository, FakeEventStoreRepository
 from src.app.model.booking import Booking
 from src.app.service_layer.service import is_between, date_range_after,date_range_before, is_room_available, get_reservoir_days, get_all_available_rooms
 import pytest
@@ -38,6 +38,8 @@ def test_return_the_booking_list_of_a_single_room():
         Booking(client_id='', room_name='room-1', arrival_date=date(2020, 7, 15), departure_date=date(2020, 7, 17))
         ]
     assert booked_room_list == booking_dataset
+    assert len(FakeEventStoreRepository.list_all())==3
+    FakeEventStoreRepository.clear()
 
 def test_return_empty_list_if_the_room_is_not_in_the_booking_list():
     booked_rooms=FakeBookingRepository()
@@ -64,6 +66,8 @@ def test_return_empty_list_if_the_room_is_not_in_the_booking_list():
     #print(booked_room_list)
     booking_dataset=[ Booking(client_id='', room_name='room-1', arrival_date='', departure_date=''), Booking(client_id='', room_name='room-1', arrival_date=date(2020, 7, 4), departure_date=date(2020, 7, 12)), Booking(client_id='', room_name='room-1', arrival_date=date(2020, 7, 15), departure_date=date(2020, 7, 17))]
     assert not booked_room_list
+    assert len(FakeEventStoreRepository.list_all())==3
+    FakeEventStoreRepository.clear()
 
 def test_if_date_is_between_a_range_of_dates():
     proposed_date_prev_range=date(2020, 7, 3)
@@ -204,7 +208,7 @@ def test_get_the_ranges_before_the_departure_date():
 
 def test_get_list_of_reservoir_days():
     
-    d1=date.today()
+    d1=date(2020, 7, 4)
     d2=d1 + timedelta(days=5)
     d_list=get_reservoir_days(d1,d2)
     sol_dataset=[
@@ -240,6 +244,8 @@ def test_get_if_room_is_available():
     assert is_room_available("room-1", date(2020, 7, 1), date(2020, 7, 3), booked_rooms)
     
     assert is_room_available("room-1", date(2020, 7, 3), date(2020, 7, 14), booked_rooms) == False
+    assert len(FakeEventStoreRepository.list_all())==3
+    FakeEventStoreRepository.clear()
 
 def test_get_all_free_rooms(): 
     
@@ -266,3 +272,5 @@ def test_get_all_free_rooms():
         "room-7"
     ]
     assert available_rooms_list==solution_dataset
+    assert len(FakeEventStoreRepository.list_all())==10
+    FakeEventStoreRepository.clear()
